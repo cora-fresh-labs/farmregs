@@ -26,9 +26,9 @@ export default function ChatWidget({ email, farmProfile }: { email: string; farm
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open])
 
-  const send = async () => {
-    if (!input.trim() || loading) return
-    const userMsg = input.trim()
+  const send = async (overrideMsg?: string) => {
+    const userMsg = (overrideMsg || input).trim()
+    if (!userMsg || loading) return
     setInput('')
     setMessages(prev => [...prev, { role: 'user', content: userMsg }])
     setLoading(true)
@@ -105,7 +105,7 @@ export default function ChatWidget({ email, farmProfile }: { email: string; farm
                 {quickQuestions.map(q => (
                   <button
                     key={q}
-                    onClick={() => { setInput(q); }}
+                    onClick={() => { send(q); }}
                     className="text-xs bg-green-50 text-[#2d6a4f] border border-green-200 rounded-full px-3 py-1 hover:bg-green-100 transition-colors"
                   >
                     {q}
@@ -127,7 +127,7 @@ export default function ChatWidget({ email, farmProfile }: { email: string; farm
                 className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]"
               />
               <button
-                onClick={send}
+                onClick={() => send()}
                 disabled={loading || !input.trim()}
                 className="bg-[#2d6a4f] text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-[#1b4332] disabled:opacity-50 transition-colors"
               >

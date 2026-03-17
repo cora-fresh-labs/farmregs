@@ -50,11 +50,11 @@ export async function GET(req: NextRequest) {
       .order('severity', { ascending: true })
 
     const regulations = (allRegs || []).filter(reg => {
+      const stateMatch = !reg.state || reg.state === profile.state
+      if (!stateMatch) return false
       if (!reg.farm_types || reg.farm_types.length === 0) return true
       if (!profile.farm_type || profile.farm_type.length === 0) return true
-      const stateMatch = !reg.state || reg.state === profile.state
-      const typeMatch = reg.farm_types.some((t: string) => profile.farm_type.includes(t))
-      return stateMatch && typeMatch
+      return reg.farm_types.some((t: string) => profile.farm_type.includes(t))
     })
 
     // Get alerts

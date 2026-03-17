@@ -29,6 +29,7 @@ function DocumentsContent() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
     doc_type: '',
     doc_name: '',
@@ -52,6 +53,7 @@ function DocumentsContent() {
     e.preventDefault()
     if (!profile || !form.doc_type || !form.doc_name) return
     setSubmitting(true)
+    setError('')
     try {
       const res = await fetch('/api/documents', {
         method: 'POST',
@@ -59,11 +61,14 @@ function DocumentsContent() {
         body: JSON.stringify({ ...form, farm_id: profile.id }),
       })
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to save document')
       if (data.document) {
         setDocuments(prev => [data.document, ...prev])
         setForm({ doc_type: '', doc_name: '', expiry_date: '', issuing_body: '', notes: '' })
         setShowForm(false)
       }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setSubmitting(false)
     }
@@ -208,6 +213,12 @@ function DocumentsContent() {
                 </div>
               )}
 
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm">
+                  {error}
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button type="submit" disabled={submitting} className="bg-[#2d6a4f] text-white px-6 py-2.5 rounded-lg font-medium hover:bg-[#1b4332] disabled:opacity-50">
                   {submitting ? 'Saving...' : 'Save Document'}
@@ -232,7 +243,7 @@ function DocumentsContent() {
           </div>
         ) : (
           <div className="space-y-4">
-            {['expired', 'renewal_needed', 'expiring_soon', 'active'].map(statusGroup => {
+            {['expired', 'expiring_soon', 'active'].map(statusGroup => {
               const groupDocs = documents.filter(d => d.status === statusGroup)
               if (groupDocs.length === 0) return null
               const groupLabel = statusGroup === 'active' ? 'Active Documents' :

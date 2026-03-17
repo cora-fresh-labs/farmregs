@@ -89,7 +89,9 @@ function DashboardContent() {
   const { profile, documents, regulations, alerts } = data
   const farmTypeLabels: Record<string, string> = {
     row_crop: 'Row Crops', livestock: 'Livestock', organic: 'Organic',
-    dairy: 'Dairy', specialty_crop: 'Specialty Crop', aquaculture: 'Aquaculture'
+    dairy: 'Dairy', specialty_crop: 'Specialty Crop', aquaculture: 'Aquaculture',
+    grain_broadacre: 'Grain/Broadacre', horticulture: 'Horticulture',
+    viticulture: 'Viticulture', mixed: 'Mixed',
   }
 
   const currentDocs = documents.filter(d => d.status === 'active')
