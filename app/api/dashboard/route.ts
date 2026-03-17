@@ -41,10 +41,12 @@ export async function GET(req: NextRequest) {
       return { ...doc, status }
     })
 
-    // Get applicable regulations
+    // Get applicable regulations filtered by country
+    const farmCountry = profile.country || 'US'
     const { data: allRegs } = await supabaseAdmin
       .from('farm_regulations')
       .select('*')
+      .eq('country', farmCountry)
       .order('severity', { ascending: true })
 
     const regulations = (allRegs || []).filter(reg => {

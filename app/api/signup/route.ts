@@ -4,11 +4,13 @@ import { supabaseAdmin } from '@/lib/supabase'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { email, farm_name, name, state, farm_type, acreage } = body
+    const { email, farm_name, name, state, farm_type, acreage, country } = body
 
     if (!email || !farm_name || !state || !farm_type?.length) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
+
+    const farmCountry = country === 'AU' ? 'AU' : 'US'
 
     // Check if farm profile exists already
     const { data: existing } = await supabaseAdmin
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest) {
       // Update profile
       await supabaseAdmin
         .from('farm_profiles')
-        .update({ farm_name, name, state, farm_type, acreage: acreage ? parseFloat(acreage) : null })
+        .update({ farm_name, name, state, farm_type, acreage: acreage ? parseFloat(acreage) : null, country: farmCountry })
         .eq('id', farmId)
     } else {
       // Create new profile
@@ -37,6 +39,7 @@ export async function POST(req: NextRequest) {
           state,
           farm_type,
           acreage: acreage ? parseFloat(acreage) : null,
+          country: farmCountry,
         })
         .select('id')
         .single()
@@ -47,7 +50,8 @@ export async function POST(req: NextRequest) {
       // Create initial alerts for applicable regulations
       const { data: regs } = await supabaseAdmin
         .from('farm_regulations')
-        .select('id, title, summary, farm_types, severity')
+        .select('id, title, summary, farm_types, severity, country')
+        .eq('country', farmCountry)
 
       if (regs) {
         const applicable = regs.filter(reg =>

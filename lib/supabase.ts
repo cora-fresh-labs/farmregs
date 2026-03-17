@@ -14,6 +14,7 @@ export type FarmProfile = {
   state: string | null
   farm_type: string[] | null
   acreage: number | null
+  country: string | null
   created_at: string
 }
 
@@ -42,6 +43,7 @@ export type FarmRegulation = {
   last_changed: string | null
   change_summary: string | null
   severity: string
+  country: string | null
   created_at: string
 }
 
