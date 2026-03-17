@@ -310,7 +310,7 @@ export default function LandingPage() {
 
           {/* Social proof */}
           <div className="mt-12 grid grid-cols-3 gap-6 text-center">
-            {isAU ? [
+            {(isAU ? [
               { num: '10+', label: 'AU regulations tracked' },
               { num: 'Federal', label: '+ all states & territories' },
               { num: 'Real-time', label: 'change notifications' },
@@ -318,7 +318,7 @@ export default function LandingPage() {
               { num: '18+', label: 'Regulations tracked' },
               { num: 'Federal', label: '+ all 50 states' },
               { num: 'Real-time', label: 'change notifications' },
-            ].map(item => (
+            ]).map(item => (
               <div key={item.label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                 <div className="text-2xl font-bold" style={{ color: accentColor }}>{item.num}</div>
                 <div className="text-sm text-gray-500 mt-1">{item.label}</div>
