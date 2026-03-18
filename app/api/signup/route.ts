@@ -13,11 +13,12 @@ export async function POST(req: NextRequest) {
     const farmCountry = country === 'AU' ? 'AU' : 'US'
 
     // Check if farm profile exists already
+    // Use maybeSingle() so it returns null (not PGRST116 error) when no match
     const { data: existing } = await supabaseAdmin
       .from('farm_profiles')
       .select('id, email')
       .eq('email', email)
-      .single()
+      .maybeSingle()
 
     let farmId: string
 
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (error) throw error
+      if (!newProfile) throw new Error('Insert succeeded but no row returned — check RLS policies on farm_profiles')
       farmId = newProfile.id
 
       // Create initial alerts for applicable regulations
