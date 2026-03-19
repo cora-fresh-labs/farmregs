@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase-browser'
 
-// --- SVG Icons ---
+// --- SVG Icons (navy stroke, 28px for features) ---
 const IconDocument = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
     <polyline points="14 2 14 8 20 8" />
     <line x1="16" y1="13" x2="8" y2="13" />
@@ -15,14 +16,14 @@ const IconDocument = () => (
 )
 
 const IconBell = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
   </svg>
 )
 
 const IconHelp = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
     <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -37,9 +38,24 @@ const IconArrowRight = () => (
 )
 
 const IconMail = () => (
-  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--straw)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--ocean)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
     <polyline points="22,6 12,13 2,6" />
+  </svg>
+)
+
+const IconCheckTeal = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+)
+
+const IconGoogle = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
   </svg>
 )
 
@@ -89,6 +105,14 @@ const AGENCIES_AU = ['FSANZ', 'APVMA', 'DAFF', 'Fair Work', 'State DPI', 'AQIS /
 type View = 'signup' | 'signin' | 'check-email'
 
 export default function LandingPage() {
+  return (
+    <Suspense>
+      <LandingContent />
+    </Suspense>
+  )
+}
+
+function LandingContent() {
   const [country, setCountry] = useState<'US' | 'AU'>('US')
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [form, setForm] = useState({ email: '', farm_name: '', name: '', state: '', acreage: '' })
@@ -96,11 +120,45 @@ export default function LandingPage() {
   const [error, setError] = useState('')
   const [view, setView] = useState<View>('signup')
   const [signInEmail, setSignInEmail] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const searchParams = useSearchParams()
+
+  const startCooldown = useCallback(() => {
+    setCooldown(60)
+    if (cooldownRef.current) clearInterval(cooldownRef.current)
+    cooldownRef.current = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) {
+          if (cooldownRef.current) clearInterval(cooldownRef.current)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }, [])
+
+  useEffect(() => {
+    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current) }
+  }, [])
 
   useEffect(() => {
     const saved = localStorage.getItem('farmregs_country') as 'US' | 'AU' | null
     if (saved === 'US' || saved === 'AU') setCountry(saved)
   }, [])
+
+  // Google OAuth redirect — user has no profile yet, pre-fill email
+  useEffect(() => {
+    if (searchParams.get('setup') === 'true') {
+      setView('signup')
+      const supabase = createSupabaseBrowser()
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user?.email) {
+          setForm(prev => ({ ...prev, email: user.email! }))
+        }
+      })
+    }
+  }, [searchParams])
 
   const handleCountryChange = (c: 'US' | 'AU') => {
     setCountry(c)
@@ -128,20 +186,38 @@ export default function LandingPage() {
     setLoading(true)
     setError('')
     try {
+      const supabase = createSupabaseBrowser()
+
+      // Check if already authenticated (Google OAuth setup flow)
+      const { data: { user: existingUser } } = await supabase.auth.getUser()
+
       const res = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, farm_type: selectedTypes, country }),
+        body: JSON.stringify({ ...form, farm_type: selectedTypes, country, user_id: existingUser?.id }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Signup failed')
 
-      const supabase = createSupabaseBrowser()
+      // If already authenticated via Google, go straight to dashboard
+      if (existingUser) {
+        window.location.href = '/dashboard'
+        return
+      }
+
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: form.email,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       })
-      if (otpError) throw otpError
+      if (otpError) {
+        if (otpError.status === 429) {
+          setError('Too many requests. Please wait a minute before trying again.')
+          startCooldown()
+          return
+        }
+        throw otpError
+      }
+      startCooldown()
       setView('check-email')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -161,7 +237,15 @@ export default function LandingPage() {
         email: signInEmail,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       })
-      if (otpError) throw otpError
+      if (otpError) {
+        if (otpError.status === 429) {
+          setError('Too many requests. Please wait a minute before trying again.')
+          startCooldown()
+          return
+        }
+        throw otpError
+      }
+      startCooldown()
       setView('check-email')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -171,37 +255,53 @@ export default function LandingPage() {
   }
 
   const handleResend = async () => {
+    if (cooldown > 0) return
     const email = signInEmail || form.email
     if (!email) return
     setLoading(true)
     try {
       const supabase = createSupabaseBrowser()
-      await supabase.auth.signInWithOtp({
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       })
+      if (otpError && otpError.status === 429) {
+        setError('Too many requests. Please wait a minute before trying again.')
+      }
+      startCooldown()
     } finally {
       setLoading(false)
     }
   }
 
-  const inputClass = 'w-full border border-[var(--straw)]/30 bg-white rounded px-4 py-3 text-[var(--soil)] font-[family-name:var(--font-body)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sage)]/40 focus:border-[var(--sage)] placeholder:text-[var(--straw)]/50 transition-colors'
-  const labelClass = 'block font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-wider text-[var(--soil)]/60 mb-2'
+  const handleGoogleSignIn = async () => {
+    const supabase = createSupabaseBrowser()
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+  }
+
+  const inputClass = 'w-full border border-[var(--rule)] bg-white rounded-lg px-4 py-3 text-[var(--ink)] font-[family-name:var(--font-body)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ocean)]/30 focus:border-[var(--ocean)] placeholder:text-[var(--muted)] transition-colors'
+  const labelClass = 'block font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-wider text-[var(--slate)] mb-2'
 
   return (
-    <div className="min-h-screen bg-[var(--parchment)]">
+    <div className="min-h-screen bg-[var(--white)]">
       {/* ─── TOPBAR ─── */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-[var(--soil)] text-[var(--wheat)] flex items-center px-6">
+      <header className="fixed top-0 left-0 right-0 z-50 h-[60px] bg-[var(--white)] border-b border-[var(--rule)] flex items-center px-6">
         <div className="w-full max-w-[1400px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="font-[family-name:var(--font-heading)] font-bold text-lg tracking-tight">FarmRegs</span>
-            <span className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-widest text-[var(--straw)]/60 hidden sm:inline">Compliance Intelligence</span>
+          {/* Logo */}
+          <div className="flex items-center gap-1.5">
+            <span className="font-[family-name:var(--font-heading)] font-bold text-xl text-[var(--navy)]">FarmRegs</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--ocean)]" />
           </div>
-          <div className="flex items-center gap-1 bg-white/5 rounded-full p-0.5">
+
+          {/* Country toggle — centered */}
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-[var(--off)] rounded-full p-0.5">
             <button
               onClick={() => handleCountryChange('US')}
               className={`px-4 py-1.5 rounded-full font-[family-name:var(--font-mono)] text-xs tracking-wide transition-all ${
-                country === 'US' ? 'bg-[var(--wheat)] text-[var(--soil)]' : 'text-[var(--straw)]/60 hover:text-[var(--wheat)]'
+                country === 'US' ? 'bg-[var(--white)] text-[var(--navy)] shadow-sm' : 'text-[var(--muted)] hover:text-[var(--slate)]'
               }`}
             >
               United States
@@ -209,41 +309,49 @@ export default function LandingPage() {
             <button
               onClick={() => handleCountryChange('AU')}
               className={`px-4 py-1.5 rounded-full font-[family-name:var(--font-mono)] text-xs tracking-wide transition-all ${
-                country === 'AU' ? 'bg-[var(--wheat)] text-[var(--soil)]' : 'text-[var(--straw)]/60 hover:text-[var(--wheat)]'
+                country === 'AU' ? 'bg-[var(--white)] text-[var(--navy)] shadow-sm' : 'text-[var(--muted)] hover:text-[var(--slate)]'
               }`}
             >
               Australia
             </button>
           </div>
+
+          {/* Sign in link */}
+          <button
+            onClick={() => { setView('signin'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            className="font-[family-name:var(--font-body)] text-sm text-[var(--ocean)] hover:text-[var(--navy)] transition-colors"
+          >
+            Sign in
+          </button>
         </div>
       </header>
 
       {/* ─── HERO (two-column) ─── */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 min-h-screen pt-14">
-        {/* LEFT — dark panel */}
-        <div className="bg-[var(--soil)] text-[var(--wheat)] px-8 lg:px-16 py-16 lg:py-24 flex flex-col justify-center">
+      <section className="grid grid-cols-1 lg:grid-cols-2 min-h-screen pt-[60px]">
+        {/* LEFT — white panel */}
+        <div className="bg-[var(--white)] px-8 lg:px-16 py-16 lg:py-24 flex flex-col justify-center">
           <div className="max-w-lg mx-auto lg:mx-0 lg:ml-auto">
             {/* Eyebrow */}
-            <div className="flex items-center gap-4 mb-10">
-              <div className="h-px flex-1 bg-[var(--straw)]/20" />
-              <span className="font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-[0.2em] text-[var(--straw)]/60">
-                {isAU ? 'Federal + State Regulation Tracking — AU' : 'Federal + State Regulation Tracking'}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-8 h-0.5 bg-[var(--ocean)]" />
+              <span className="font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-[0.15em] text-[var(--ocean)]">
+                {isAU ? 'Federal + State Regulation Tracking' : 'Federal + State Regulation Tracking'}
               </span>
             </div>
 
             {/* Heading */}
-            <h1 className="font-[family-name:var(--font-heading)] text-[40px] lg:text-[48px] leading-[1.15] font-bold mb-6">
-              Know exactly what regulations apply to your farm.
+            <h1 className="font-[family-name:var(--font-heading)] text-[40px] lg:text-[48px] leading-[1.15] font-semibold text-[var(--navy)] mb-6">
+              Know exactly what regulations apply to <em className="italic text-[var(--ocean)]">your</em> farm.
             </h1>
 
             {/* Subhead */}
-            <p className="font-[family-name:var(--font-body)] font-light text-base leading-relaxed text-[var(--wheat)]/65 mb-10 max-w-md">
+            <p className="font-[family-name:var(--font-body)] font-light text-base leading-relaxed text-[var(--slate)] mb-10 max-w-md">
               {isAU
                 ? 'Track FSANZ, APVMA, DAFF biosecurity, and state-specific requirements. Built for Australian farmers.'
                 : 'Track certifications, permits, and federal requirements. Never miss a deadline or compliance update.'}
             </p>
 
-            {/* Bullet points */}
+            {/* Teal checkmark bullet points */}
             <div className="space-y-3 mb-12">
               {(isAU ? [
                 'FSANZ & food safety standards',
@@ -257,36 +365,34 @@ export default function LandingPage() {
                 'Labor law requirements',
               ]).map(item => (
                 <div key={item} className="flex items-center gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-light)] shrink-0" />
-                  <span className="font-[family-name:var(--font-body)] text-sm text-[var(--wheat)]/80">{item}</span>
+                  <IconCheckTeal />
+                  <span className="font-[family-name:var(--font-body)] text-sm text-[var(--ink)]">{item}</span>
                 </div>
               ))}
             </div>
 
-            {/* Stats row */}
-            <div className="border-t border-[var(--straw)]/15 pt-8">
-              <div className="grid grid-cols-3 gap-6">
-                {(isAU ? [
-                  { num: '10+', label: 'Regulations tracked' },
-                  { num: 'All 8', label: 'States & territories' },
-                  { num: 'Live', label: 'Change monitoring' },
-                ] : [
-                  { num: '50+', label: 'Regulations tracked' },
-                  { num: 'All 50', label: 'States covered' },
-                  { num: 'Live', label: 'Change monitoring' },
-                ]).map(stat => (
-                  <div key={stat.label}>
-                    <div className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--wheat)]">{stat.num}</div>
-                    <div className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wider text-[var(--straw)]/50 mt-1">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
+            {/* Stats row with vertical rules */}
+            <div className="flex items-center gap-0">
+              {(isAU ? [
+                { num: '10+', label: 'Regulations tracked' },
+                { num: 'All 8', label: 'States & territories' },
+                { num: 'Live', label: 'Change monitoring' },
+              ] : [
+                { num: '50+', label: 'Regulations tracked' },
+                { num: 'All 50', label: 'States covered' },
+                { num: 'Live', label: 'Change monitoring' },
+              ]).map((stat, i) => (
+                <div key={stat.label} className={`flex-1 ${i > 0 ? 'border-l border-[var(--rule)] pl-6' : ''} ${i < 2 ? 'pr-6' : ''}`}>
+                  <div className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--navy)]">{stat.num}</div>
+                  <div className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wider text-[var(--muted)] mt-1">{stat.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* RIGHT — light panel (form) */}
-        <div className="bg-[var(--parchment)] px-8 lg:px-16 py-16 lg:py-24 flex flex-col justify-center">
+        {/* RIGHT — off-white panel (form) */}
+        <div className="bg-[var(--off)] px-8 lg:px-16 py-16 lg:py-24 flex flex-col justify-center">
           <div className="max-w-md mx-auto lg:mx-0 w-full">
 
             {/* Check Email View */}
@@ -295,22 +401,33 @@ export default function LandingPage() {
                 <div className="mb-6 flex justify-center">
                   <IconMail />
                 </div>
-                <h2 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--soil)] mb-3">Check your email</h2>
-                <p className="font-[family-name:var(--font-body)] text-sm text-[var(--soil)]/60 mb-2">
-                  We sent a magic link to <strong className="text-[var(--soil)]">{signInEmail || form.email}</strong>
+                <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--navy)] mb-3">Check your email</h2>
+                <p className="font-[family-name:var(--font-body)] text-sm text-[var(--slate)] mb-2">
+                  We sent a magic link to <strong className="text-[var(--ink)]">{signInEmail || form.email}</strong>
                 </p>
-                <p className="font-[family-name:var(--font-body)] text-sm text-[var(--soil)]/40 mb-8">No password needed. Just click the link.</p>
+                <p className="font-[family-name:var(--font-body)] text-sm text-[var(--muted)] mb-2">No password needed. Just click the link.</p>
+                <p className="font-[family-name:var(--font-body)] text-xs text-[var(--muted)] mb-2">
+                  Link expires in 10 minutes.
+                </p>
+                <p className="font-[family-name:var(--font-body)] text-xs text-[var(--muted)] mb-8">
+                  Not in your inbox? Check your spam or promotions folder.
+                </p>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200/60 rounded-lg px-4 py-3 text-red-700 text-sm mb-4">{error}</div>
+                )}
+
                 <button
                   onClick={handleResend}
-                  disabled={loading}
-                  className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider text-[var(--sage)] hover:text-[var(--soil)] transition-colors disabled:opacity-50"
+                  disabled={loading || cooldown > 0}
+                  className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider text-[var(--ocean)] hover:text-[var(--navy)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Sending...' : "Didn't get it? Resend"}
+                  {loading ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : "Didn't get it? Resend"}
                 </button>
-                <div className="mt-8 pt-6 border-t border-[var(--straw)]/20">
+                <div className="mt-8 pt-6 border-t border-[var(--rule)]">
                   <button
-                    onClick={() => { setView('signup'); setError('') }}
-                    className="font-[family-name:var(--font-mono)] text-xs text-[var(--soil)]/40 hover:text-[var(--soil)]/70 transition-colors"
+                    onClick={() => { setView('signup'); setError(''); setCooldown(0) }}
+                    className="font-[family-name:var(--font-mono)] text-xs text-[var(--muted)] hover:text-[var(--slate)] transition-colors"
                   >
                     Back to sign up
                   </button>
@@ -321,10 +438,27 @@ export default function LandingPage() {
             {/* Sign-In View */}
             {view === 'signin' && (
               <div>
-                <h2 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--soil)] mb-2">Welcome back</h2>
-                <p className="font-[family-name:var(--font-body)] text-sm text-[var(--soil)]/50 mb-8">Enter your email and we&apos;ll send you a magic link.</p>
+                <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--navy)] mb-2">Welcome back</h2>
+                <p className="font-[family-name:var(--font-body)] text-sm text-[var(--slate)] mb-8">Sign in to your compliance dashboard.</p>
 
-                <form onSubmit={handleSignIn} className="space-y-6">
+                {/* Google Sign In */}
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className="w-full flex items-center justify-center gap-3 border border-[var(--rule)] bg-[var(--white)] rounded-lg px-4 py-3 text-sm font-[family-name:var(--font-body)] font-medium text-[var(--ink)] hover:bg-gray-50 transition-colors mb-6"
+                >
+                  <IconGoogle />
+                  Sign in with Google
+                </button>
+
+                {/* Divider */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="flex-1 h-px bg-[var(--rule)]" />
+                  <span className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-widest text-[var(--muted)]">or</span>
+                  <div className="flex-1 h-px bg-[var(--rule)]" />
+                </div>
+
+                <form onSubmit={handleSignIn} className="space-y-5">
                   <div>
                     <label className={labelClass}>Email</label>
                     <input
@@ -337,21 +471,21 @@ export default function LandingPage() {
                   </div>
 
                   {error && (
-                    <div className="bg-red-50 border border-red-200/60 rounded px-4 py-3 text-red-700 text-sm">{error}</div>
+                    <div className="bg-red-50 border border-red-200/60 rounded-lg px-4 py-3 text-red-700 text-sm">{error}</div>
                   )}
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[var(--soil)] text-[var(--wheat)] py-3.5 rounded font-[family-name:var(--font-body)] font-medium text-sm tracking-wide flex items-center justify-center gap-2 hover:bg-[var(--bark)] disabled:opacity-50 transition-colors"
+                    className="w-full bg-[var(--navy)] text-white py-3.5 rounded-lg font-[family-name:var(--font-body)] font-medium text-sm tracking-wide flex items-center justify-center gap-2 hover:bg-[var(--navy-deep)] disabled:opacity-50 transition-colors"
                   >
                     {loading ? 'Sending link...' : 'Send magic link'}
                     {!loading && <IconArrowRight />}
                   </button>
 
-                  <p className="text-center font-[family-name:var(--font-body)] text-xs text-[var(--soil)]/40">
+                  <p className="text-center font-[family-name:var(--font-body)] text-xs text-[var(--muted)]">
                     New here?{' '}
-                    <button type="button" onClick={() => { setView('signup'); setError('') }} className="text-[var(--sage)] hover:underline">
+                    <button type="button" onClick={() => { setView('signup'); setError('') }} className="text-[var(--ocean)] hover:underline">
                       Create an account
                     </button>
                   </p>
@@ -362,9 +496,25 @@ export default function LandingPage() {
             {/* Sign-Up View */}
             {view === 'signup' && (
               <div>
-                <h2 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--soil)] mb-1">Get your compliance dashboard</h2>
-                <p className="font-[family-name:var(--font-body)] text-sm text-[var(--soil)]/50 mb-6">Free. No password required.</p>
-                <div className="h-px bg-[var(--straw)]/20 mb-6" />
+                <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--navy)] mb-1">Get your compliance dashboard</h2>
+                <p className="font-[family-name:var(--font-body)] text-sm text-[var(--slate)] mb-6">Free. No password required.</p>
+
+                {/* Google Sign In */}
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className="w-full flex items-center justify-center gap-3 border border-[var(--rule)] bg-[var(--white)] rounded-lg px-4 py-3 text-sm font-[family-name:var(--font-body)] font-medium text-[var(--ink)] hover:bg-gray-50 transition-colors mb-6"
+                >
+                  <IconGoogle />
+                  Sign in with Google
+                </button>
+
+                {/* Divider */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="flex-1 h-px bg-[var(--rule)]" />
+                  <span className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-widest text-[var(--muted)]">or continue with email</span>
+                  <div className="flex-1 h-px bg-[var(--rule)]" />
+                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Farm Types */}
@@ -376,10 +526,10 @@ export default function LandingPage() {
                           key={type.id}
                           type="button"
                           onClick={() => toggleType(type.id)}
-                          className={`px-3 py-2.5 rounded text-sm font-[family-name:var(--font-body)] font-medium transition-all border ${
+                          className={`px-3 py-2.5 rounded-lg text-sm font-[family-name:var(--font-body)] font-medium transition-all border ${
                             selectedTypes.includes(type.id)
-                              ? 'bg-[var(--sage-pale)] border-[var(--sage)] text-[var(--soil)]'
-                              : 'bg-white border-[var(--straw)]/20 text-[var(--soil)]/60 hover:border-[var(--straw)]/40'
+                              ? 'bg-[var(--navy)] border-[var(--navy)] text-white'
+                              : 'bg-[var(--white)] border-[var(--rule)] text-[var(--slate)] hover:border-[var(--muted)]'
                           }`}
                         >
                           {type.label}
@@ -403,7 +553,7 @@ export default function LandingPage() {
                           : US_STATES.map(s => <option key={s} value={s}>{s}</option>)
                         }
                       </select>
-                      <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--straw)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="6 9 12 15 18 9" />
                       </svg>
                     </div>
@@ -458,21 +608,21 @@ export default function LandingPage() {
                   </div>
 
                   {error && (
-                    <div className="bg-red-50 border border-red-200/60 rounded px-4 py-3 text-red-700 text-sm">{error}</div>
+                    <div className="bg-red-50 border border-red-200/60 rounded-lg px-4 py-3 text-red-700 text-sm">{error}</div>
                   )}
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[var(--soil)] text-[var(--wheat)] py-3.5 rounded font-[family-name:var(--font-body)] font-medium text-sm tracking-wide flex items-center justify-center gap-2 hover:bg-[var(--bark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="w-full bg-[var(--navy)] text-white py-3.5 rounded-lg font-[family-name:var(--font-body)] font-medium text-sm tracking-wide flex items-center justify-center gap-2 hover:bg-[var(--navy-deep)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {loading ? 'Setting up your dashboard...' : 'Get my compliance dashboard'}
                     {!loading && <IconArrowRight />}
                   </button>
 
-                  <p className="text-center font-[family-name:var(--font-body)] text-xs text-[var(--soil)]/40">
+                  <p className="text-center font-[family-name:var(--font-body)] text-xs text-[var(--muted)]">
                     Already have an account?{' '}
-                    <button type="button" onClick={() => { setView('signin'); setError('') }} className="text-[var(--sage)] hover:underline">
+                    <button type="button" onClick={() => { setView('signin'); setError('') }} className="text-[var(--ocean)] hover:underline">
                       Sign in
                     </button>
                   </p>
@@ -484,14 +634,14 @@ export default function LandingPage() {
       </section>
 
       {/* ─── AGENCY STRIP ─── */}
-      <section className="bg-[var(--soil)] py-5 px-6">
+      <section className="bg-[var(--navy)] py-5 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-wrap items-center gap-4">
-          <span className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.2em] text-[var(--straw)]/40 shrink-0">Regulations from</span>
+          <span className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.2em] text-white/40 shrink-0">Regulations from</span>
           <div className="flex flex-wrap gap-2">
             {(isAU ? AGENCIES_AU : AGENCIES_US).map(agency => (
               <span
                 key={agency}
-                className="px-3 py-1 rounded-full border border-[var(--straw)]/15 font-[family-name:var(--font-mono)] text-[11px] text-[var(--straw)]/60 tracking-wide"
+                className="px-3 py-1 rounded-full border border-white/15 font-[family-name:var(--font-mono)] text-[11px] text-white/60 tracking-wide"
               >
                 {agency}
               </span>
@@ -501,9 +651,17 @@ export default function LandingPage() {
       </section>
 
       {/* ─── FEATURES ─── */}
-      <section className="bg-[var(--parchment)] py-20 px-6">
+      <section className="bg-[var(--white)] py-20 px-6">
         <div className="max-w-[1100px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--straw)]/15">
+          {/* Eyebrow */}
+          <div className="flex items-center gap-3 mb-12">
+            <div className="w-8 h-0.5 bg-[var(--ocean)]" />
+            <span className="font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-[0.15em] text-[var(--ocean)]">
+              What you get
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
                 icon: <IconDocument />,
@@ -522,16 +680,16 @@ export default function LandingPage() {
                 title: 'AI Assistant',
                 desc: 'Ask any compliance question and get specific answers about your farm type, state, and operations.',
               },
-            ].map((f, i) => (
+            ].map(f => (
               <div
                 key={f.title}
-                className={`group px-8 py-8 md:py-0 hover:bg-white transition-colors ${i === 0 ? 'md:pl-0' : ''} ${i === 2 ? 'md:pr-0' : ''}`}
+                className="group p-6 rounded-xl border border-[var(--rule)] hover:border-[var(--ocean)]/30 hover:shadow-sm transition-all"
               >
-                <div className="w-12 h-12 rounded-lg bg-[var(--sage-pale)] text-[var(--sage)] flex items-center justify-center mb-5">
+                <div className="w-12 h-12 rounded-lg bg-[var(--off)] flex items-center justify-center mb-5">
                   {f.icon}
                 </div>
-                <h3 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[var(--soil)] mb-2">{f.title}</h3>
-                <p className="font-[family-name:var(--font-body)] text-sm leading-relaxed text-[var(--soil)]/50">{f.desc}</p>
+                <h3 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[var(--navy)] mb-2">{f.title}</h3>
+                <p className="font-[family-name:var(--font-body)] text-sm leading-relaxed text-[var(--slate)]">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -539,12 +697,12 @@ export default function LandingPage() {
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="bg-[var(--bark)] py-6 px-6">
+      <footer className="bg-[var(--off)] border-t border-[var(--rule)] py-6 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="font-[family-name:var(--font-mono)] text-[11px] text-[var(--straw)]/40 tracking-wide">
+          <span className="font-[family-name:var(--font-mono)] text-[11px] text-[var(--muted)] tracking-wide">
             FarmRegs &copy; {new Date().getFullYear()}
           </span>
-          <span className="font-[family-name:var(--font-body)] text-[11px] text-[var(--straw)]/30">
+          <span className="font-[family-name:var(--font-body)] text-[11px] text-[var(--muted)]/60">
             Not legal advice. Always consult a qualified attorney for compliance decisions.
           </span>
         </div>

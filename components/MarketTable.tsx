@@ -24,7 +24,7 @@ const STATUS_BADGE: Record<string, string> = {
   Unrestricted: 'bg-emerald-100 text-emerald-800',
   'Permit Required': 'bg-amber-100 text-amber-800',
   Prohibited: 'bg-red-100 text-red-800',
-  'No Local Rules': 'bg-gray-100 text-gray-700',
+  'No Local Rules': 'bg-[var(--off)] text-[var(--slate)]',
 }
 
 const STATUS_KEY_MAP: Record<string, string> = {
@@ -59,13 +59,13 @@ export default function MarketTable({ markets, stateAbbr, statusFilter }: Props)
           placeholder="Search markets..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="flex-1 px-3 py-2 border border-[var(--rule)] rounded-lg text-sm font-[family-name:var(--font-body)] focus:outline-none focus:ring-2 focus:ring-[var(--ocean)]/30"
         />
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setTypeFilter(null)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              !typeFilter ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            className={`px-3 py-1.5 rounded-full text-xs font-medium font-[family-name:var(--font-mono)] transition-colors ${
+              !typeFilter ? 'bg-[var(--navy)] text-white' : 'bg-[var(--off)] text-[var(--slate)] hover:bg-[var(--rule)]'
             }`}
           >
             All Types
@@ -74,8 +74,8 @@ export default function MarketTable({ markets, stateAbbr, statusFilter }: Props)
             <button
               key={t}
               onClick={() => setTypeFilter(typeFilter === t ? null : t)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                typeFilter === t ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              className={`px-3 py-1.5 rounded-full text-xs font-medium font-[family-name:var(--font-mono)] transition-colors ${
+                typeFilter === t ? 'bg-[var(--navy)] text-white' : 'bg-[var(--off)] text-[var(--slate)] hover:bg-[var(--rule)]'
               }`}
             >
               {t}
@@ -85,45 +85,45 @@ export default function MarketTable({ markets, stateAbbr, statusFilter }: Props)
       </div>
 
       {/* Results count */}
-      <p className="text-sm text-gray-500 mb-3">
+      <p className="text-sm text-[var(--muted)] font-[family-name:var(--font-body)] mb-3">
         Showing {filtered.length} of {markets.length} markets
       </p>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
+      <div className="overflow-x-auto rounded-lg border border-[var(--rule)]">
+        <table className="w-full text-sm font-[family-name:var(--font-body)]">
+          <thead className="bg-[var(--off)] text-[var(--slate)]">
             <tr>
               <th className="text-left px-4 py-3 font-medium">Market</th>
               <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Type</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Verified</th>
+              <th className="text-left px-4 py-3 font-medium hidden md:table-cell font-[family-name:var(--font-mono)] text-xs">Verified</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-[var(--rule)]/50">
             {filtered.map(m => (
-              <tr key={m.id} className="hover:bg-green-50/50 transition-colors">
+              <tr key={m.id} className="hover:bg-[var(--off)]/50 transition-colors">
                 <td className="px-4 py-3">
                   <Link
                     href={`/regulations/${stateAbbr.toLowerCase()}/${m.slug}`}
-                    className="text-green-800 font-medium hover:underline"
+                    className="text-[var(--navy)] font-medium hover:text-[var(--ocean)] hover:underline"
                   >
                     {m.name}
                   </Link>
-                  {m.county && <span className="text-gray-400 text-xs ml-2">{m.county} County</span>}
+                  {m.county && <span className="text-[var(--muted)] text-xs ml-2">{m.county} County</span>}
                 </td>
-                <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{m.type}</td>
+                <td className="px-4 py-3 text-[var(--slate)] hidden sm:table-cell">{m.type}</td>
                 <td className="px-4 py-3">
-                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${STATUS_BADGE[m.status || ''] || 'bg-gray-100 text-gray-600'}`}>
+                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${STATUS_BADGE[m.status || ''] || 'bg-[var(--off)] text-[var(--slate)]'}`}>
                     {m.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-400 text-xs hidden md:table-cell">{m.last_verified}</td>
+                <td className="px-4 py-3 text-[var(--muted)] text-xs font-[family-name:var(--font-mono)] hidden md:table-cell">{m.last_verified}</td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={4} className="px-4 py-8 text-center text-[var(--muted)]">
                   No markets match your filters.
                 </td>
               </tr>

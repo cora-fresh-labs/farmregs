@@ -18,13 +18,13 @@ export default function QuickFacts({ market }: Props) {
   ]
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-5 sticky top-4">
-      <h3 className="font-bold text-gray-900 mb-4">Quick Facts</h3>
+    <div className="bg-white rounded-lg border border-[var(--rule)] p-5 sticky top-4">
+      <h3 className="font-[family-name:var(--font-heading)] font-semibold text-[var(--navy)] mb-4">Quick Facts</h3>
       <dl className="space-y-3">
         {facts.map(f => f.value ? (
           <div key={f.label}>
-            <dt className="text-xs text-gray-500 uppercase tracking-wide">{f.label}</dt>
-            <dd className="text-sm font-medium text-gray-900 mt-0.5">{f.value}</dd>
+            <dt className="text-xs text-[var(--muted)] uppercase tracking-wide font-[family-name:var(--font-mono)]">{f.label}</dt>
+            <dd className="text-sm font-medium text-[var(--ink)] font-[family-name:var(--font-body)] mt-0.5">{f.value}</dd>
           </div>
         ) : null)}
       </dl>

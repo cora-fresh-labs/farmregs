@@ -8,6 +8,12 @@ type Message = {
   content: string
 }
 
+const IconChat = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+)
+
 export default function ChatWidget({ farmProfile }: { farmProfile: FarmProfile | null }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
@@ -61,27 +67,27 @@ export default function ChatWidget({ farmProfile }: { farmProfile: FarmProfile |
     <>
       {/* Chat Window */}
       {open && (
-        <div className="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col z-50" style={{ height: '500px' }}>
+        <div className="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl border border-[var(--rule)] flex flex-col z-50" style={{ height: '500px' }}>
           {/* Header */}
-          <div className="bg-[#1b4332] text-white px-5 py-4 rounded-t-2xl flex items-center justify-between">
+          <div className="bg-[var(--navy)] text-white px-5 py-4 rounded-t-2xl flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xl">🤖</span>
+              <IconChat />
               <div>
-                <p className="font-semibold text-sm">AI Compliance Assistant</p>
-                <p className="text-green-300 text-xs">Powered by FarmRegs</p>
+                <p className="font-[family-name:var(--font-body)] font-semibold text-sm">AI Compliance Assistant</p>
+                <p className="text-white/50 text-xs font-[family-name:var(--font-mono)]">Powered by FarmRegs</p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="text-green-200 hover:text-white text-xl leading-none">×</button>
+            <button onClick={() => setOpen(false)} className="text-white/50 hover:text-white text-xl leading-none">&times;</button>
           </div>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed font-[family-name:var(--font-body)] ${
                   msg.role === 'user'
-                    ? 'bg-[#2d6a4f] text-white rounded-br-sm'
-                    : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+                    ? 'bg-[var(--navy)] text-white rounded-br-sm'
+                    : 'bg-[var(--off)] text-[var(--ink)] rounded-bl-sm'
                 }`}>
                   {msg.content}
                 </div>
@@ -89,7 +95,7 @@ export default function ChatWidget({ farmProfile }: { farmProfile: FarmProfile |
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 text-sm text-gray-500">
+                <div className="bg-[var(--off)] rounded-2xl rounded-bl-sm px-4 py-3 text-sm text-[var(--muted)]">
                   <span className="animate-pulse">Thinking...</span>
                 </div>
               </div>
@@ -105,7 +111,7 @@ export default function ChatWidget({ farmProfile }: { farmProfile: FarmProfile |
                   <button
                     key={q}
                     onClick={() => { send(q); }}
-                    className="text-xs bg-green-50 text-[#2d6a4f] border border-green-200 rounded-full px-3 py-1 hover:bg-green-100 transition-colors"
+                    className="text-xs bg-[var(--off)] text-[var(--ocean)] border border-[var(--rule)] rounded-full px-3 py-1 hover:bg-[var(--ocean)]/5 transition-colors font-[family-name:var(--font-body)]"
                   >
                     {q}
                   </button>
@@ -115,7 +121,7 @@ export default function ChatWidget({ farmProfile }: { farmProfile: FarmProfile |
           )}
 
           {/* Input */}
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-4 border-t border-[var(--rule)]">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -123,17 +129,17 @@ export default function ChatWidget({ farmProfile }: { farmProfile: FarmProfile |
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
                 placeholder="Ask about your compliance..."
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]"
+                className="flex-1 border border-[var(--rule)] rounded-xl px-4 py-2.5 text-sm font-[family-name:var(--font-body)] focus:outline-none focus:ring-2 focus:ring-[var(--ocean)]/30"
               />
               <button
                 onClick={() => send()}
                 disabled={loading || !input.trim()}
-                className="bg-[#2d6a4f] text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-[#1b4332] disabled:opacity-50 transition-colors"
+                className="bg-[var(--navy)] text-white rounded-xl px-4 py-2.5 text-sm font-[family-name:var(--font-body)] font-medium hover:bg-[var(--navy-deep)] disabled:opacity-50 transition-colors"
               >
                 Send
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2 text-center">Not legal advice. Consult a compliance professional.</p>
+            <p className="text-xs text-[var(--muted)] mt-2 text-center font-[family-name:var(--font-body)]">Not legal advice. Consult a compliance professional.</p>
           </div>
         </div>
       )}
@@ -141,10 +147,14 @@ export default function ChatWidget({ farmProfile }: { farmProfile: FarmProfile |
       {/* Floating Button */}
       <button
         onClick={() => setOpen(prev => !prev)}
-        className="fixed bottom-6 right-6 bg-[#2d6a4f] text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-[#1b4332] transition-all z-50 text-2xl"
+        className="fixed bottom-6 right-6 bg-[var(--navy)] text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-[var(--navy-deep)] transition-all z-50"
         aria-label="Open compliance assistant"
       >
-        {open ? '×' : '🤖'}
+        {open ? (
+          <span className="text-2xl leading-none">&times;</span>
+        ) : (
+          <IconChat />
+        )}
       </button>
     </>
   )

@@ -54,10 +54,10 @@ export default function MarketPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#faf7f0] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--white)] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-3 animate-bounce">🌾</div>
-          <p className="text-gray-500">Loading market data...</p>
+          <div className="w-8 h-8 border-2 border-[var(--navy)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-[var(--slate)] font-[family-name:var(--font-body)]">Loading market data...</p>
         </div>
       </div>
     )
@@ -65,10 +65,10 @@ export default function MarketPage() {
 
   if (!data || !data.name) {
     return (
-      <div className="min-h-screen bg-[#faf7f0] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--white)] flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500 mb-4">Market not found.</p>
-          <Link href="/regulations" className="text-green-700 hover:underline">Back to map</Link>
+          <p className="text-[var(--slate)] font-[family-name:var(--font-body)] mb-4">Market not found.</p>
+          <Link href="/regulations" className="text-[var(--ocean)] hover:underline font-[family-name:var(--font-body)]">Back to map</Link>
         </div>
       </div>
     )
@@ -78,7 +78,7 @@ export default function MarketPage() {
   const stateName = data.state?.name || stateAbbr
 
   return (
-    <div className="min-h-screen bg-[#faf7f0]">
+    <div className="min-h-screen bg-[var(--white)]">
       <Header />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
@@ -89,29 +89,29 @@ export default function MarketPage() {
         ]} />
 
         {/* Market hero */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[var(--rule)] p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
-            <h1 className="text-2xl font-bold text-gray-900">{data.name}</h1>
+            <h1 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--navy)]">{data.name}</h1>
             {data.status && (
               <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${STATUS_STYLE[data.status] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
                 {data.status}
               </span>
             )}
             {pinned && (
-              <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+              <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
                 Your Market
               </span>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--slate)] font-[family-name:var(--font-body)]">
             {data.type && <span>{data.type}</span>}
             {data.county && <span>· {data.county} County</span>}
-            {data.last_verified && <span>· Last verified: {data.last_verified}</span>}
+            {data.last_verified && <span className="font-[family-name:var(--font-mono)] text-xs text-[var(--muted)]">· Last verified: {data.last_verified}</span>}
             {user && !pinned && (
               <button
                 onClick={handlePin}
                 disabled={pinning}
-                className="ml-auto bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1b4332] disabled:opacity-50 transition-colors"
+                className="ml-auto bg-[var(--navy)] text-white px-4 py-2 rounded-lg text-sm font-[family-name:var(--font-body)] font-medium hover:bg-[var(--navy-deep)] disabled:opacity-50 transition-colors"
               >
                 {pinning ? 'Pinning...' : 'This is my market'}
               </button>

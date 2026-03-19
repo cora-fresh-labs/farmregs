@@ -53,10 +53,10 @@ export default function StatePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#faf7f0] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--white)] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-3 animate-bounce">🌾</div>
-          <p className="text-gray-500">Loading state data...</p>
+          <div className="w-8 h-8 border-2 border-[var(--navy)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-[var(--slate)] font-[family-name:var(--font-body)]">Loading state data...</p>
         </div>
       </div>
     )
@@ -64,17 +64,17 @@ export default function StatePage() {
 
   if (!data || !data.name) {
     return (
-      <div className="min-h-screen bg-[#faf7f0] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--white)] flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500 mb-4">State not found.</p>
-          <Link href="/regulations" className="text-green-700 hover:underline">Back to map</Link>
+          <p className="text-[var(--slate)] font-[family-name:var(--font-body)] mb-4">State not found.</p>
+          <Link href="/regulations" className="text-[var(--ocean)] hover:underline font-[family-name:var(--font-body)]">Back to map</Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#faf7f0]">
+    <div className="min-h-screen bg-[var(--white)]">
       <Header />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
@@ -84,9 +84,9 @@ export default function StatePage() {
         ]} />
 
         {/* State hero */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-lg border border-[var(--rule)] p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">{data.name}</h1>
+            <h1 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--navy)]">{data.name}</h1>
             {data.status_label && (
               <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${STATUS_STYLE[data.status || ''] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
                 {data.status_label}
@@ -94,7 +94,7 @@ export default function StatePage() {
             )}
           </div>
           {data.summary && (
-            <p className="text-gray-600 leading-relaxed max-w-3xl">{data.summary}</p>
+            <p className="text-[var(--slate)] font-[family-name:var(--font-body)] leading-relaxed max-w-3xl">{data.summary}</p>
           )}
         </div>
 
@@ -108,10 +108,10 @@ export default function StatePage() {
         </div>
 
         {/* Markets table */}
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
+        <div className="bg-white rounded-lg border border-[var(--rule)] p-5">
+          <h2 className="text-lg font-[family-name:var(--font-heading)] font-semibold text-[var(--navy)] mb-4">
             Markets in {data.name}
-            <span className="text-gray-400 font-normal text-sm ml-2">({data.total_markets})</span>
+            <span className="text-[var(--muted)] font-normal text-sm ml-2 font-[family-name:var(--font-body)]">({data.total_markets})</span>
           </h2>
           <MarketTable
             markets={data.markets || []}

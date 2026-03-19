@@ -59,24 +59,24 @@ export default function RegulationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#faf7f0] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--white)] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-3 animate-bounce">🌾</div>
-          <p className="text-gray-500">Loading regulations map...</p>
+          <div className="w-8 h-8 border-2 border-[var(--navy)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-[var(--slate)] font-[family-name:var(--font-body)]">Loading regulations map...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#faf7f0]">
+    <div className="min-h-screen bg-[var(--white)]">
       <Header />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Hero */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">US Produce Regulations by State</h1>
-          <p className="text-gray-500 max-w-2xl">
+          <h1 className="font-[family-name:var(--font-heading)] text-3xl font-semibold text-[var(--navy)] mb-2">US Produce Regulations by State</h1>
+          <p className="text-[var(--slate)] font-[family-name:var(--font-body)] max-w-2xl">
             Click any state to explore local market regulations including FSMA compliance,
             cottage food laws, permits, organic certification, and more.
           </p>
@@ -84,31 +84,31 @@ export default function RegulationsPage() {
 
         {/* Summary stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
-            <div className="text-2xl font-bold text-gray-900">{totals.states}</div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">States + DC</div>
+          <div className="bg-white rounded-lg border border-[var(--rule)] p-4 text-center">
+            <div className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--navy)]">{totals.states}</div>
+            <div className="text-xs text-[var(--muted)] uppercase tracking-wide font-[family-name:var(--font-mono)]">States + DC</div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
-            <div className="text-2xl font-bold text-gray-900">{totals.markets.toLocaleString()}</div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Markets Tracked</div>
+          <div className="bg-white rounded-lg border border-[var(--rule)] p-4 text-center">
+            <div className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[var(--navy)]">{totals.markets.toLocaleString()}</div>
+            <div className="text-xs text-[var(--muted)] uppercase tracking-wide font-[family-name:var(--font-mono)]">Markets Tracked</div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
-            <div className="text-2xl font-bold text-emerald-700">{totals.unrestricted.toLocaleString()}</div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Unrestricted</div>
+          <div className="bg-white rounded-lg border border-[var(--rule)] p-4 text-center">
+            <div className="font-[family-name:var(--font-heading)] text-2xl font-bold text-emerald-700">{totals.unrestricted.toLocaleString()}</div>
+            <div className="text-xs text-[var(--muted)] uppercase tracking-wide font-[family-name:var(--font-mono)]">Unrestricted</div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
-            <div className="text-2xl font-bold text-amber-600">{totals.permitRequired.toLocaleString()}</div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Permit Required</div>
+          <div className="bg-white rounded-lg border border-[var(--rule)] p-4 text-center">
+            <div className="font-[family-name:var(--font-heading)] text-2xl font-bold text-amber-600">{totals.permitRequired.toLocaleString()}</div>
+            <div className="text-xs text-[var(--muted)] uppercase tracking-wide font-[family-name:var(--font-mono)]">Permit Required</div>
           </div>
         </div>
 
         {/* Map + Sidebar */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Map */}
-          <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-4">
+          <div className="lg:col-span-2 bg-white rounded-lg border border-[var(--rule)] p-4">
             <USMap states={states} onStateClick={(abbr) => router.push(`/regulations/${abbr.toLowerCase()}`)} />
             {/* Legend */}
-            <div className="flex flex-wrap gap-4 mt-4 justify-center text-xs text-gray-600">
+            <div className="flex flex-wrap gap-4 mt-4 justify-center text-xs text-[var(--slate)] font-[family-name:var(--font-mono)]">
               {[
                 { label: 'Grower-Friendly', color: 'bg-emerald-500' },
                 { label: 'Moderate', color: 'bg-amber-500' },
@@ -123,26 +123,26 @@ export default function RegulationsPage() {
           </div>
 
           {/* State list sidebar */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white rounded-lg border border-[var(--rule)] p-4">
             <input
               type="text"
               placeholder="Search states..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 border border-[var(--rule)] rounded-lg text-sm font-[family-name:var(--font-body)] mb-3 focus:outline-none focus:ring-2 focus:ring-[var(--ocean)]/30"
             />
             <div className="max-h-[420px] overflow-y-auto space-y-1">
               {filtered.map(s => (
                 <Link
                   key={s.abbr}
                   href={`/regulations/${s.abbr.toLowerCase()}`}
-                  className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-green-50 transition-colors group"
+                  className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-[var(--off)] transition-colors group"
                 >
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${STATUS_DOT[s.status || ''] || 'bg-gray-300'}`} />
-                    <span className="text-sm text-gray-800 group-hover:text-green-800">{s.name}</span>
+                    <span className="text-sm text-[var(--ink)] group-hover:text-[var(--navy)] font-[family-name:var(--font-body)]">{s.name}</span>
                   </div>
-                  <span className="text-xs text-gray-400">{s.total_markets}</span>
+                  <span className="text-xs text-[var(--muted)] font-[family-name:var(--font-mono)]">{s.total_markets}</span>
                 </Link>
               ))}
             </div>

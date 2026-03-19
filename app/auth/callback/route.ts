@@ -29,6 +29,30 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // Check if user has a farm profile
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('farm_profiles')
+          .select('id')
+          .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+          .maybeSingle()
+
+        if (!profile) {
+          // New Google user — needs profile setup
+          return NextResponse.redirect(new URL('/?setup=true', request.url))
+        }
+
+        // Auto-link user_id if profile exists but not yet linked
+        if (profile) {
+          await supabase
+            .from('farm_profiles')
+            .update({ user_id: user.id })
+            .eq('id', profile.id)
+            .is('user_id', null)
+        }
+      }
+
       return NextResponse.redirect(new URL(next, request.url))
     }
   }

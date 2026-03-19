@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { email, farm_name, name, state, farm_type, acreage, country } = body
+    const { email, farm_name, name, state, farm_type, acreage, country, user_id } = body
 
     if (!email || !farm_name || !state || !farm_type?.length) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
           farm_type,
           acreage: acreage ? parseFloat(acreage) : null,
           country: farmCountry,
+          ...(user_id ? { user_id } : {}),
         })
         .select('id')
         .single()

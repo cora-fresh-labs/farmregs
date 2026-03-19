@@ -7,35 +7,33 @@ type Props = {
 type Section = {
   key: keyof Market
   title: string
-  icon: string
 }
 
 const SECTIONS: Section[] = [
-  { key: 'fsma', title: 'FSMA Produce Safety', icon: '🛡️' },
-  { key: 'sales_threshold', title: 'Sales Thresholds', icon: '📊' },
-  { key: 'cottage_food', title: 'Cottage Food', icon: '🏠' },
-  { key: 'permits', title: 'Permits & Licensing', icon: '📋' },
-  { key: 'zoning', title: 'Zoning', icon: '🗺️' },
-  { key: 'labeling', title: 'Labeling Requirements', icon: '🏷️' },
-  { key: 'organic', title: 'Organic Certification', icon: '🌿' },
-  { key: 'pesticides', title: 'Pesticide Regulations', icon: '🧪' },
-  { key: 'water', title: 'Water Regulations', icon: '💧' },
-  { key: 'direct_sales', title: 'Direct Sales Channels', icon: '🛒' },
-  { key: 'tax', title: 'Tax & Exemptions', icon: '💰' },
+  { key: 'fsma', title: 'FSMA Produce Safety' },
+  { key: 'sales_threshold', title: 'Sales Thresholds' },
+  { key: 'cottage_food', title: 'Cottage Food' },
+  { key: 'permits', title: 'Permits & Licensing' },
+  { key: 'zoning', title: 'Zoning' },
+  { key: 'labeling', title: 'Labeling Requirements' },
+  { key: 'organic', title: 'Organic Certification' },
+  { key: 'pesticides', title: 'Pesticide Regulations' },
+  { key: 'water', title: 'Water Regulations' },
+  { key: 'direct_sales', title: 'Direct Sales Channels' },
+  { key: 'tax', title: 'Tax & Exemptions' },
 ]
 
-function SectionCard({ title, icon, data }: { title: string; icon: string; data: Record<string, unknown> }) {
+function SectionCard({ title, data }: { title: string; data: Record<string, unknown> }) {
   const details = data.details as string | undefined
   const status = data.status as string | undefined
   const entries = Object.entries(data).filter(([k]) => k !== 'details' && k !== 'status')
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-5">
-      <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-        <span>{icon}</span>
+    <div className="bg-white rounded-lg border border-[var(--rule)] p-5">
+      <h3 className="font-[family-name:var(--font-body)] font-bold text-[var(--navy)] mb-3 flex items-center gap-2">
         <span>{title}</span>
         {status && (
-          <span className="ml-auto text-xs font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+          <span className="ml-auto text-xs font-medium font-[family-name:var(--font-mono)] px-2 py-0.5 rounded bg-[var(--ocean)]/10 text-[var(--ocean)]">
             {status}
           </span>
         )}
@@ -57,8 +55,8 @@ function SectionCard({ title, icon, data }: { title: string; icon: string; data:
             }
             return (
               <div key={key}>
-                <dt className="text-xs text-gray-500 uppercase tracking-wide">{label}</dt>
-                <dd className="text-sm text-gray-800">{display}</dd>
+                <dt className="text-xs text-[var(--muted)] uppercase tracking-wide font-[family-name:var(--font-mono)]">{label}</dt>
+                <dd className="text-sm text-[var(--ink)] font-[family-name:var(--font-body)]">{display}</dd>
               </div>
             )
           })}
@@ -66,7 +64,7 @@ function SectionCard({ title, icon, data }: { title: string; icon: string; data:
       )}
 
       {/* Details paragraph */}
-      {details && <p className="text-sm text-gray-600 leading-relaxed">{details}</p>}
+      {details && <p className="text-sm text-[var(--slate)] font-[family-name:var(--font-body)] leading-relaxed">{details}</p>}
     </div>
   )
 }
@@ -77,15 +75,14 @@ export default function MarketDetail({ market }: Props) {
       {SECTIONS.map(s => {
         const data = market[s.key] as Record<string, unknown> | null
         if (!data) return null
-        return <SectionCard key={s.key} title={s.title} icon={s.icon} data={data} />
+        return <SectionCard key={s.key} title={s.title} data={data} />
       })}
 
       {/* Official URLs */}
       {market.official_urls && market.official_urls.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <span>🔗</span>
-            <span>Official Resources</span>
+        <div className="bg-white rounded-lg border border-[var(--rule)] p-5">
+          <h3 className="font-[family-name:var(--font-body)] font-bold text-[var(--navy)] mb-3">
+            Official Resources
           </h3>
           <ul className="space-y-2">
             {market.official_urls.map((u, i) => (
@@ -94,9 +91,9 @@ export default function MarketDetail({ market }: Props) {
                   href={u.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-green-700 hover:underline"
+                  className="text-sm text-[var(--ocean)] hover:underline font-[family-name:var(--font-body)]"
                 >
-                  {u.label} →
+                  {u.label} &rarr;
                 </a>
               </li>
             ))}
