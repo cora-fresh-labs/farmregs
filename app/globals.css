@@ -1,15 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --color-green-primary: #2d6a4f;
-  --color-green-dark: #1b4332;
-  --color-green-light: #52b788;
-  --color-gold-primary: #d4a017;
-  --color-gold-light: #f4d03f;
-  --color-cream: #faf7f0;
+  --soil: #1a1208;
+  --bark: #2d2010;
+  --field: #3d3018;
+  --straw: #c8a96e;
+  --wheat: #e8d5a3;
+  --cream: #f5efe0;
+  --parchment: #faf6ed;
+  --sage: #5a7a5a;
+  --sage-light: #7a9a7a;
+  --sage-pale: #d4e4d4;
 }
 
 body {
-  background-color: #faf7f0;
-  color: #1a1a1a;
+  background-color: var(--parchment);
+  color: var(--soil);
 }
