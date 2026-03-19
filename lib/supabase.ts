@@ -21,6 +21,8 @@ export type FarmProfile = {
   farm_type: string[] | null
   acreage: number | null
   country: string | null
+  commodity: string | null
+  plan: string | null
   created_at: string
 }
 

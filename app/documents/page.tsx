@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Header from '@/components/Header'
 import ChatWidget from '@/components/ChatWidget'
-import type { FarmDocument, FarmProfile } from '@/lib/supabase'
+import type { FarmDocument, FarmProfile, FarmAlert } from '@/lib/supabase'
 
 const DOC_TYPES = [
   { id: 'organic_cert', label: 'Organic Certification', instructions: 'Contact your USDA-accredited certifier at least 3 months before expiry. Annual renewal required. Submit OSP update and any operation changes.' },
@@ -21,6 +21,7 @@ const DOC_TYPES = [
 export default function DocumentsPage() {
   const [profile, setProfile] = useState<FarmProfile | null>(null)
   const [documents, setDocuments] = useState<FarmDocument[]>([])
+  const [docAlerts, setDocAlerts] = useState<FarmAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -39,6 +40,7 @@ export default function DocumentsPage() {
       .then(d => {
         if (d.profile) setProfile(d.profile)
         if (d.documents) setDocuments(d.documents)
+        if (d.alerts) setDocAlerts(d.alerts)
       })
       .finally(() => setLoading(false))
   }, [])
@@ -291,7 +293,7 @@ export default function DocumentsPage() {
         )}
       </main>
 
-      <ChatWidget farmProfile={profile} />
+      <ChatWidget farmProfile={profile} documents={documents} alerts={docAlerts} />
     </div>
   )
 }

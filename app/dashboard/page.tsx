@@ -392,7 +392,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      <ChatWidget farmProfile={profile} />
+      <ChatWidget farmProfile={profile} documents={documents} alerts={alerts} />
     </div>
   )
 }
