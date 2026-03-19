@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import type { FarmDocument, FarmProfile } from '@/lib/supabase'
+import { useEffect, useState } from 'react'
+import Header from '@/components/Header'
 import ChatWidget from '@/components/ChatWidget'
+import type { FarmDocument, FarmProfile } from '@/lib/supabase'
 
 const DOC_TYPES = [
   { id: 'organic_cert', label: 'Organic Certification', instructions: 'Contact your USDA-accredited certifier at least 3 months before expiry. Annual renewal required. Submit OSP update and any operation changes.' },
@@ -19,11 +18,7 @@ const DOC_TYPES = [
   { id: 'other', label: 'Other Permit/Certificate', instructions: 'Review the issuing agency requirements for renewal and contact them at least 60 days before expiry.' },
 ]
 
-function DocumentsContent() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const email = searchParams.get('email')
-
+export default function DocumentsPage() {
   const [profile, setProfile] = useState<FarmProfile | null>(null)
   const [documents, setDocuments] = useState<FarmDocument[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,15 +34,14 @@ function DocumentsContent() {
   })
 
   useEffect(() => {
-    if (!email) { router.push('/'); return }
-    fetch(`/api/dashboard?email=${encodeURIComponent(email)}`)
+    fetch('/api/dashboard')
       .then(r => r.json())
       .then(d => {
         if (d.profile) setProfile(d.profile)
         if (d.documents) setDocuments(d.documents)
       })
       .finally(() => setLoading(false))
-  }, [email, router])
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,19 +88,7 @@ function DocumentsContent() {
 
   return (
     <div className="min-h-screen bg-[#faf7f0]">
-      <header className="bg-[#1b4332] text-white py-4 px-6 sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="text-2xl">🌾</span>
-            <span className="text-xl font-bold">FarmRegs</span>
-          </Link>
-          <nav className="flex items-center gap-6 text-sm">
-            <Link href={`/dashboard?email=${encodeURIComponent(email!)}`} className="text-green-200 hover:text-white">Dashboard</Link>
-            <Link href={`/documents?email=${encodeURIComponent(email!)}`} className="text-white font-medium">Documents</Link>
-            <Link href={`/regulations?email=${encodeURIComponent(email!)}`} className="text-green-200 hover:text-white">Regulations</Link>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-4xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-8">
@@ -208,7 +190,7 @@ function DocumentsContent() {
 
               {selectedDocType && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-green-800 mb-1">📋 Renewal Instructions</p>
+                  <p className="text-sm font-semibold text-green-800 mb-1">Renewal Instructions</p>
                   <p className="text-sm text-green-700">{selectedDocType.instructions}</p>
                 </div>
               )}
@@ -261,8 +243,8 @@ function DocumentsContent() {
                             <div className="flex items-center gap-3 mb-1">
                               <span className="font-semibold text-gray-900">{doc.doc_name}</span>
                               <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${getStatusColor(doc.status)}`}>
-                                {doc.status === 'active' ? '✅ Active' :
-                                 doc.status === 'expiring_soon' ? '⚠️ Expiring Soon' : '🔴 Expired'}
+                                {doc.status === 'active' ? 'Active' :
+                                 doc.status === 'expiring_soon' ? 'Expiring Soon' : 'Expired'}
                               </span>
                             </div>
                             <div className="flex flex-wrap gap-4 text-sm text-gray-400">
@@ -297,15 +279,7 @@ function DocumentsContent() {
         )}
       </main>
 
-      <ChatWidget email={email!} farmProfile={profile} />
+      <ChatWidget farmProfile={profile} />
     </div>
-  )
-}
-
-export default function DocumentsPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#faf7f0]"><div className="text-5xl animate-bounce">🌾</div></div>}>
-      <DocumentsContent />
-    </Suspense>
   )
 }

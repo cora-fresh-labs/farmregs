@@ -8,7 +8,7 @@ type Message = {
   content: string
 }
 
-export default function ChatWidget({ email, farmProfile }: { email: string; farmProfile: FarmProfile | null }) {
+export default function ChatWidget({ farmProfile }: { farmProfile: FarmProfile | null }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -39,7 +39,6 @@ export default function ChatWidget({ email, farmProfile }: { email: string; farm
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [...messages, { role: 'user', content: userMsg }],
-          farmProfile,
         }),
       })
       const data = await res.json()
@@ -131,7 +130,7 @@ export default function ChatWidget({ email, farmProfile }: { email: string; farm
                 disabled={loading || !input.trim()}
                 className="bg-[#2d6a4f] text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-[#1b4332] disabled:opacity-50 transition-colors"
               >
-                →
+                Send
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-2 text-center">Not legal advice. Consult a compliance professional.</p>

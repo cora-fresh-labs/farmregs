@@ -65,3 +65,80 @@ export type FarmAlert = {
   status: string
   created_at: string
 }
+
+// --- New deep-regulation types (fr_ tables) ---
+
+export type StateCounts = {
+  unrestricted: number
+  permitRequired: number
+  prohibited: number
+  noLocalRules: number
+}
+
+export type State = {
+  id: string
+  abbr: string
+  name: string
+  country: string
+  status: string | null       // 'strict' | 'moderate' | 'grower-friendly' | 'mixed'
+  status_label: string | null
+  summary: string | null
+  total_markets: number
+  counts: StateCounts
+  created_at: string
+  updated_at: string
+}
+
+export type OfficialUrl = {
+  url: string
+  label: string
+}
+
+export type RegSection = {
+  status?: string
+  details?: string
+  [key: string]: unknown
+}
+
+export type Market = {
+  id: string
+  state_id: string
+  name: string
+  slug: string
+  type: string | null         // 'City' | 'County' | 'Borough' | 'Census Area' etc.
+  county: string | null
+  status: string | null       // 'Unrestricted' | 'Permit Required' | 'Prohibited' | 'No Local Rules'
+  permit_required: boolean | null
+  last_verified: string | null
+
+  // Regulation sections (jsonb)
+  fsma: RegSection | null
+  sales_threshold: RegSection | null
+  cottage_food: RegSection | null
+  permits: RegSection | null
+  zoning: RegSection | null
+  labeling: RegSection | null
+  organic: RegSection | null
+  pesticides: RegSection | null
+  water: RegSection | null
+  direct_sales: RegSection | null
+  tax: RegSection | null
+  official_urls: OfficialUrl[] | null
+
+  created_at: string
+  updated_at: string
+}
+
+export type RegulationUpdate = {
+  id: string
+  state_id: string | null
+  market_id: string | null
+  source: string | null       // 'USDA' | 'FDA' | 'EPA' | 'state_ag_dept'
+  title: string
+  summary: string | null
+  change_type: string | null  // 'new_rule' | 'amendment' | 'repeal' | 'deadline'
+  severity: string
+  source_url: string | null
+  detected_at: string
+  effective_date: string | null
+}

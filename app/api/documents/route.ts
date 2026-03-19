@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseServer } from '@/lib/supabase-server'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createSupabaseServer()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await req.json()
     const { farm_id, doc_type, doc_name, expiry_date, issuing_body, notes } = body
 

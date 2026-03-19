@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { createSupabaseBrowser } from '@/lib/supabase-browser'
 
 const US_FARM_TYPES = [
   { id: 'row_crop', label: 'Row Crops', emoji: '🌽' },
@@ -49,21 +49,22 @@ const AU_STATE_LABELS: Record<string, string> = {
   NT: 'Northern Territory',
 }
 
+type View = 'signup' | 'signin' | 'check-email'
+
 export default function LandingPage() {
-  const router = useRouter()
   const [country, setCountry] = useState<'US' | 'AU'>('US')
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [form, setForm] = useState({ email: '', farm_name: '', name: '', state: '', acreage: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [view, setView] = useState<View>('signup')
+  const [signInEmail, setSignInEmail] = useState('')
 
-  // Load country from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('farmregs_country') as 'US' | 'AU' | null
     if (saved === 'US' || saved === 'AU') setCountry(saved)
   }, [])
 
-  // Persist country selection and reset state/types on switch
   const handleCountryChange = (c: 'US' | 'AU') => {
     setCountry(c)
     localStorage.setItem('farmregs_country', c)
@@ -89,6 +90,7 @@ export default function LandingPage() {
     setLoading(true)
     setError('')
     try {
+      // Create profile first
       const res = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,9 +98,57 @@ export default function LandingPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Signup failed')
-      router.push(`/dashboard?email=${encodeURIComponent(form.email)}`)
+
+      // Send magic link
+      const supabase = createSupabaseBrowser()
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: form.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (otpError) throw otpError
+
+      setView('check-email')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!signInEmail) { setError('Please enter your email.'); return }
+    setLoading(true)
+    setError('')
+    try {
+      const supabase = createSupabaseBrowser()
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: signInEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (otpError) throw otpError
+      setView('check-email')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    const email = view === 'check-email' ? (signInEmail || form.email) : form.email
+    if (!email) return
+    setLoading(true)
+    try {
+      const supabase = createSupabaseBrowser()
+      await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      })
     } finally {
       setLoading(false)
     }
@@ -127,7 +177,7 @@ export default function LandingPage() {
                 country === 'US' ? 'bg-white text-gray-900' : 'text-white/80 hover:text-white'
               }`}
             >
-              🇺🇸 United States
+              US
             </button>
             <button
               onClick={() => handleCountryChange('AU')}
@@ -135,7 +185,7 @@ export default function LandingPage() {
                 country === 'AU' ? 'bg-white text-gray-900' : 'text-white/80 hover:text-white'
               }`}
             >
-              🇦🇺 Australia
+              AU
             </button>
           </div>
         </div>
@@ -176,87 +226,44 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Sign-up Form */}
+      {/* Form Section */}
       <section className="py-16 px-6">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Get your compliance dashboard</h2>
-            <p className="text-gray-500 mb-8">Free. No password required. Just your farm details.</p>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Farm Types */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Farm Type <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {farmTypes.map(type => (
-                    <button
-                      key={type.id}
-                      type="button"
-                      onClick={() => toggleType(type.id)}
-                      style={selectedTypes.includes(type.id) ? { borderColor: accentColor, color: accentColor } : {}}
-                      className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                        selectedTypes.includes(type.id)
-                          ? 'bg-opacity-5'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      <span>{type.emoji}</span>
-                      <span>{type.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* State / Territory */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  {isAU ? 'State / Territory' : 'State'} <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={form.state}
-                  onChange={e => setForm(prev => ({ ...prev, state: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent"
-                  style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
+          {/* Check Email View */}
+          {view === 'check-email' && (
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+              <div className="text-5xl mb-4">📬</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
+              <p className="text-gray-500 mb-6">
+                We sent a magic link to <strong>{signInEmail || form.email}</strong>. Click the link in the email to access your dashboard.
+              </p>
+              <p className="text-sm text-gray-400 mb-6">No password needed — just click the link.</p>
+              <button
+                onClick={handleResend}
+                disabled={loading}
+                className="text-sm font-medium hover:underline disabled:opacity-50"
+                style={{ color: accentColor }}
+              >
+                {loading ? 'Sending...' : "Didn't get it? Resend"}
+              </button>
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => { setView('signup'); setError('') }}
+                  className="text-sm text-gray-400 hover:text-gray-600"
                 >
-                  <option value="">{isAU ? 'Select state/territory...' : 'Select your state...'}</option>
-                  {isAU
-                    ? AU_STATES.map(s => <option key={s} value={s}>{AU_STATE_LABELS[s]} ({s})</option>)
-                    : US_STATES.map(s => <option key={s} value={s}>{s}</option>)
-                  }
-                </select>
+                  Back to sign up
+                </button>
               </div>
+            </div>
+          )}
 
-              {/* Farm Name + Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Farm Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={isAU ? 'Outback Station' : 'Sunshine Farms'}
-                    value={form.farm_name}
-                    onChange={e => setForm(prev => ({ ...prev, farm_name: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Your Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="John Smith"
-                    value={form.name}
-                    onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent"
-                  />
-                </div>
-              </div>
+          {/* Sign-In View */}
+          {view === 'signin' && (
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
+              <p className="text-gray-500 mb-8">Enter your email and we&apos;ll send you a magic link.</p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form onSubmit={handleSignIn} className="space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Email <span className="text-red-500">*</span>
@@ -264,49 +271,181 @@ export default function LandingPage() {
                   <input
                     type="email"
                     placeholder="john@myfarm.com"
-                    value={form.email}
-                    onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
+                    value={signInEmail}
+                    onChange={e => setSignInEmail(e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent"
                   />
                 </div>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{ backgroundColor: accentColor }}
+                  className="w-full text-white py-4 rounded-lg font-semibold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                >
+                  {loading ? 'Sending link...' : 'Send magic link'}
+                </button>
+
+                <p className="text-center text-sm text-gray-400">
+                  New here?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setView('signup'); setError('') }}
+                    className="font-medium hover:underline"
+                    style={{ color: accentColor }}
+                  >
+                    Create an account
+                  </button>
+                </p>
+              </form>
+            </div>
+          )}
+
+          {/* Sign-Up View */}
+          {view === 'signup' && (
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Get your compliance dashboard</h2>
+              <p className="text-gray-500 mb-8">Free. No password required. Just your farm details.</p>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Farm Types */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Farm Type <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {farmTypes.map(type => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => toggleType(type.id)}
+                        style={selectedTypes.includes(type.id) ? { borderColor: accentColor, color: accentColor } : {}}
+                        className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                          selectedTypes.includes(type.id)
+                            ? 'bg-opacity-5'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <span>{type.emoji}</span>
+                        <span>{type.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* State / Territory */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {isAU ? 'Hectares (approx.)' : 'Acreage (approx.)'}
+                    {isAU ? 'State / Territory' : 'State'} <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="number"
-                    placeholder={isAU ? '100' : '250'}
-                    value={form.acreage}
-                    onChange={e => setForm(prev => ({ ...prev, acreage: e.target.value }))}
+                  <select
+                    value={form.state}
+                    onChange={e => setForm(prev => ({ ...prev, state: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent"
-                  />
+                    style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
+                  >
+                    <option value="">{isAU ? 'Select state/territory...' : 'Select your state...'}</option>
+                    {isAU
+                      ? AU_STATES.map(s => <option key={s} value={s}>{AU_STATE_LABELS[s]} ({s})</option>)
+                      : US_STATES.map(s => <option key={s} value={s}>{s}</option>)
+                    }
+                  </select>
                 </div>
-              </div>
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm">
-                  {error}
+                {/* Farm Name + Email */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Farm Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={isAU ? 'Outback Station' : 'Sunshine Farms'}
+                      value={form.farm_name}
+                      onChange={e => setForm(prev => ({ ...prev, farm_name: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Your Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="John Smith"
+                      value={form.name}
+                      onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
                 </div>
-              )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                style={{ backgroundColor: accentColor }}
-                className="w-full text-white py-4 rounded-lg font-semibold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:opacity-90"
-              >
-                {loading ? (
-                  <><span className="animate-spin">⟳</span> Setting up your dashboard...</>
-                ) : (
-                  <>Get my compliance dashboard →</>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="john@myfarm.com"
+                      value={form.email}
+                      onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      {isAU ? 'Hectares (approx.)' : 'Acreage (approx.)'}
+                    </label>
+                    <input
+                      type="number"
+                      placeholder={isAU ? '100' : '250'}
+                      value={form.acreage}
+                      onChange={e => setForm(prev => ({ ...prev, acreage: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm">
+                    {error}
+                  </div>
                 )}
-              </button>
 
-              <p className="text-center text-xs text-gray-400">
-                No password required. Access via email link. We&apos;ll send weekly regulation updates.
-              </p>
-            </form>
-          </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{ backgroundColor: accentColor }}
+                  className="w-full text-white py-4 rounded-lg font-semibold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:opacity-90"
+                >
+                  {loading ? (
+                    <>Setting up your dashboard...</>
+                  ) : (
+                    <>Get my compliance dashboard</>
+                  )}
+                </button>
+
+                <p className="text-center text-sm text-gray-400">
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setView('signin'); setError('') }}
+                    className="font-medium hover:underline"
+                    style={{ color: accentColor }}
+                  >
+                    Sign in
+                  </button>
+                </p>
+              </form>
+            </div>
+          )}
 
           {/* Social proof */}
           <div className="mt-12 grid grid-cols-3 gap-6 text-center">
@@ -367,7 +506,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="py-8 px-6 text-center text-gray-400 text-sm">
         <p>FarmRegs — Not legal advice. Always consult a qualified attorney for compliance decisions.</p>
-        <p className="mt-1">© {new Date().getFullYear()} FarmRegs</p>
+        <p className="mt-1">&copy; {new Date().getFullYear()} FarmRegs</p>
       </footer>
     </div>
   )

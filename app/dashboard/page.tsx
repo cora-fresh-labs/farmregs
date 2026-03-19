@@ -1,16 +1,28 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Header from '@/components/Header'
 import ChatWidget from '@/components/ChatWidget'
-import type { FarmProfile, FarmDocument, FarmRegulation, FarmAlert } from '@/lib/supabase'
+import ChecklistSection from '@/components/ChecklistSection'
+import type { FarmProfile, FarmDocument, FarmRegulation, FarmAlert, Market } from '@/lib/supabase'
 
 type DashboardData = {
   profile: FarmProfile
   documents: FarmDocument[]
   regulations: FarmRegulation[]
   alerts: FarmAlert[]
+  pinnedMarket: (Market & { state: { abbr: string; name: string } }) | null
+  checklistItems: ChecklistItem[] | null
+}
+
+type ChecklistItem = {
+  id: string
+  section: string
+  title: string
+  description: string | null
+  priority: string
+  is_checked: boolean
 }
 
 function DaysUntil({ date }: { date: string }) {
@@ -20,16 +32,44 @@ function DaysUntil({ date }: { date: string }) {
   return <span className="text-green-600">Exp. {new Date(date).toLocaleDateString()}</span>
 }
 
-function ComplianceScore({ documents, alerts }: { documents: FarmDocument[], alerts: FarmAlert[] }) {
+function ComplianceScore({ documents, alerts, checklistItems }: {
+  documents: FarmDocument[]
+  alerts: FarmAlert[]
+  checklistItems: ChecklistItem[] | null
+}) {
   const expired = documents.filter(d => d.status === 'expired').length
   const expiringSoon = documents.filter(d => d.status === 'expiring_soon').length
   const unreadCritical = alerts.filter(a => a.status === 'unread').length
 
-  let score = 100
-  score -= expired * 15
-  score -= expiringSoon * 8
-  score -= unreadCritical * 5
-  score = Math.max(0, Math.min(100, score))
+  // Doc score (0-100)
+  let docScore = 100
+  docScore -= expired * 15
+  docScore -= expiringSoon * 8
+  docScore = Math.max(0, Math.min(100, docScore))
+
+  // Alert score (0-100)
+  let alertScore = 100
+  alertScore -= unreadCritical * 5
+  alertScore = Math.max(0, Math.min(100, alertScore))
+
+  // Checklist score (0-100)
+  let checklistScore = 100
+  if (checklistItems && checklistItems.length > 0) {
+    let totalWeight = 0
+    let checkedWeight = 0
+    for (const item of checklistItems) {
+      const weight = item.priority === 'high' ? 2 : 1
+      totalWeight += weight
+      if (item.is_checked) checkedWeight += weight
+    }
+    checklistScore = totalWeight > 0 ? Math.round((checkedWeight / totalWeight) * 100) : 100
+  }
+
+  // Weighted composite
+  const hasChecklist = checklistItems && checklistItems.length > 0
+  const score = hasChecklist
+    ? Math.round(docScore * 0.4 + alertScore * 0.1 + checklistScore * 0.5)
+    : Math.round(docScore * 0.85 + alertScore * 0.15)
 
   const color = score >= 80 ? 'text-green-600' : score >= 60 ? 'text-amber-600' : 'text-red-600'
 
@@ -37,26 +77,19 @@ function ComplianceScore({ documents, alerts }: { documents: FarmDocument[], ale
     <div className="flex items-center gap-3">
       <div className={`text-3xl font-bold ${color}`}>{score}/100</div>
       <div className="text-sm text-gray-500">
-        {score >= 80 ? '✅ Good standing' : score >= 60 ? '⚠️ Needs attention' : '🔴 Action required'}
+        {score >= 80 ? 'Good standing' : score >= 60 ? 'Needs attention' : 'Action required'}
       </div>
     </div>
   )
 }
 
-function DashboardContent() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const email = searchParams.get('email')
+export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!email) {
-      router.push('/')
-      return
-    }
-    fetch(`/api/dashboard?email=${encodeURIComponent(email)}`)
+    fetch('/api/dashboard')
       .then(r => r.json())
       .then(d => {
         if (d.error) { setError(d.error); return }
@@ -64,7 +97,7 @@ function DashboardContent() {
       })
       .catch(() => setError('Failed to load dashboard'))
       .finally(() => setLoading(false))
-  }, [email, router])
+  }, [])
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#faf7f0]">
@@ -76,17 +109,20 @@ function DashboardContent() {
   )
 
   if (error || !data) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#faf7f0]">
-      <div className="text-center max-w-md">
-        <div className="text-5xl mb-4">⚠️</div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Farm profile not found</h2>
-        <p className="text-gray-500 mb-6">{error || 'Please sign up first to access your dashboard.'}</p>
-        <Link href="/" className="btn-primary">← Back to sign up</Link>
+    <div className="min-h-screen bg-[#faf7f0]">
+      <Header />
+      <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
+        <div className="text-center max-w-md">
+          <div className="text-5xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Farm profile not found</h2>
+          <p className="text-gray-500 mb-6">{error || 'Please sign up first to access your dashboard.'}</p>
+          <Link href="/" className="inline-block bg-[#2d6a4f] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#1b4332]">Back to sign up</Link>
+        </div>
       </div>
     </div>
   )
 
-  const { profile, documents, regulations, alerts } = data
+  const { profile, documents, regulations, alerts, pinnedMarket, checklistItems } = data
   const farmTypeLabels: Record<string, string> = {
     row_crop: 'Row Crops', livestock: 'Livestock', organic: 'Organic',
     dairy: 'Dairy', specialty_crop: 'Specialty Crop', aquaculture: 'Aquaculture',
@@ -99,30 +135,9 @@ function DashboardContent() {
   const expiredDocs = documents.filter(d => d.status === 'expired' || d.status === 'renewal_needed')
   const unreadAlerts = alerts.filter(a => a.status === 'unread')
 
-  const categoryColors: Record<string, string> = {
-    food_safety: 'bg-orange-100 text-orange-700',
-    environmental: 'bg-blue-100 text-blue-700',
-    labor: 'bg-purple-100 text-purple-700',
-    certification: 'bg-green-100 text-green-700',
-    reporting: 'bg-gray-100 text-gray-700',
-  }
-
   return (
     <div className="min-h-screen bg-[#faf7f0]">
-      {/* Header */}
-      <header className="bg-[#1b4332] text-white py-4 px-6 sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="text-2xl">🌾</span>
-            <span className="text-xl font-bold">FarmRegs</span>
-          </Link>
-          <nav className="flex items-center gap-6 text-sm">
-            <Link href={`/dashboard?email=${encodeURIComponent(email!)}`} className="text-white font-medium">Dashboard</Link>
-            <Link href={`/documents?email=${encodeURIComponent(email!)}`} className="text-green-200 hover:text-white">Documents</Link>
-            <Link href={`/regulations?email=${encodeURIComponent(email!)}`} className="text-green-200 hover:text-white">Regulations</Link>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-6xl mx-auto px-6 py-8">
         {/* Farm Header */}
@@ -131,36 +146,97 @@ function DashboardContent() {
             <div>
               <h1 className="text-2xl font-bold">{profile.farm_name || 'Your Farm'}</h1>
               <p className="text-green-200 mt-1">
-                {profile.state} · {profile.farm_type?.map(t => farmTypeLabels[t] || t).join(', ')} 
+                {profile.state} · {profile.farm_type?.map(t => farmTypeLabels[t] || t).join(', ')}
                 {profile.acreage ? ` · ${profile.acreage} acres` : ''}
               </p>
-              <p className="text-green-300 text-sm mt-1">{profile.email}</p>
             </div>
             <div className="bg-white/10 rounded-xl p-4">
               <p className="text-green-200 text-xs uppercase tracking-wide mb-1">Compliance Score</p>
-              <ComplianceScore documents={documents} alerts={unreadAlerts} />
+              <ComplianceScore documents={documents} alerts={unreadAlerts} checklistItems={checklistItems} />
             </div>
           </div>
         </div>
+
+        {/* Pinned Market Section */}
+        {pinnedMarket ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-900">Your Market</h2>
+              <Link
+                href={`/regulations/${(pinnedMarket.state as { abbr: string }).abbr.toLowerCase()}/${pinnedMarket.slug}`}
+                className="text-sm text-[#2d6a4f] hover:underline"
+              >
+                View full details
+              </Link>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📍</span>
+              <div>
+                <p className="font-semibold text-gray-900">{pinnedMarket.name}</p>
+                <p className="text-sm text-gray-500">
+                  {(pinnedMarket.state as { name: string }).name}
+                  {pinnedMarket.county && ` · ${pinnedMarket.county} County`}
+                  {pinnedMarket.status && (
+                    <span className={`ml-2 inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                      pinnedMarket.status === 'Unrestricted' ? 'bg-emerald-100 text-emerald-800' :
+                      pinnedMarket.status === 'Permit Required' ? 'bg-amber-100 text-amber-800' :
+                      pinnedMarket.status === 'Prohibited' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {pinnedMarket.status}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-dashed border-gray-300 p-6 mb-6 text-center">
+            <div className="text-3xl mb-2">📍</div>
+            <p className="text-gray-600 font-medium mb-1">Set your local market</p>
+            <p className="text-sm text-gray-400 mb-4">Pin your market to get personalized regulations and a compliance checklist.</p>
+            <Link
+              href="/regulations"
+              className="inline-block bg-[#2d6a4f] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#1b4332]"
+            >
+              Browse regulations map
+            </Link>
+          </div>
+        )}
 
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm text-center">
             <div className="text-3xl font-bold text-green-600">{currentDocs.length}</div>
-            <div className="text-sm text-gray-500 mt-1">✅ Current Documents</div>
+            <div className="text-sm text-gray-500 mt-1">Current Documents</div>
           </div>
           <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm text-center">
             <div className="text-3xl font-bold text-amber-500">{expiringSoonDocs.length}</div>
-            <div className="text-sm text-gray-500 mt-1">⚠️ Expiring Soon</div>
+            <div className="text-sm text-gray-500 mt-1">Expiring Soon</div>
           </div>
           <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm text-center">
             <div className="text-3xl font-bold text-red-500">{expiredDocs.length}</div>
-            <div className="text-sm text-gray-500 mt-1">🔴 Overdue Renewals</div>
+            <div className="text-sm text-gray-500 mt-1">Overdue Renewals</div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
+            {/* Compliance Checklist */}
+            {checklistItems && checklistItems.length > 0 && (
+              <ChecklistSection items={checklistItems} onToggle={(id, checked) => {
+                setData(prev => {
+                  if (!prev) return prev
+                  return {
+                    ...prev,
+                    checklistItems: prev.checklistItems?.map(item =>
+                      item.id === id ? { ...item, is_checked: checked } : item
+                    ) ?? null,
+                  }
+                })
+              }} />
+            )}
+
             {/* Active Alerts */}
             <section>
               <div className="flex items-center justify-between mb-4">
@@ -200,22 +276,21 @@ function DashboardContent() {
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-gray-900">Your Regulations ({regulations.length} applicable)</h2>
-                <Link href={`/regulations?email=${encodeURIComponent(email!)}`} className="text-sm text-[#2d6a4f] hover:underline">View all →</Link>
+                <Link href="/regulations" className="text-sm text-[#2d6a4f] hover:underline">View all</Link>
               </div>
               <div className="flex flex-wrap gap-2">
                 {regulations.map(reg => (
-                  <Link
+                  <span
                     key={reg.id}
-                    href={`/regulations?email=${encodeURIComponent(email!)}&id=${reg.id}`}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      reg.severity === 'critical' ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' :
-                      reg.severity === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' :
-                      'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border ${
+                      reg.severity === 'critical' ? 'bg-red-50 border-red-200 text-red-700' :
+                      reg.severity === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                      'bg-gray-50 border-gray-200 text-gray-700'
                     }`}
                   >
                     {reg.severity === 'critical' ? '🔴' : reg.severity === 'warning' ? '⚠️' : 'ℹ️'}
                     {reg.title}
-                  </Link>
+                  </span>
                 ))}
               </div>
             </section>
@@ -225,13 +300,13 @@ function DashboardContent() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">Document Vault</h2>
-              <Link href={`/documents?email=${encodeURIComponent(email!)}`} className="text-sm text-[#2d6a4f] hover:underline">Manage →</Link>
+              <Link href="/documents" className="text-sm text-[#2d6a4f] hover:underline">Manage</Link>
             </div>
             {documents.length === 0 ? (
               <div className="bg-white rounded-xl p-6 border border-dashed border-gray-200 text-center">
                 <div className="text-3xl mb-3">📁</div>
                 <p className="text-sm text-gray-500 mb-4">No documents yet. Add your certifications and permits.</p>
-                <Link href={`/documents?email=${encodeURIComponent(email!)}`} className="text-sm text-[#2d6a4f] font-medium hover:underline">+ Add document</Link>
+                <Link href="/documents" className="text-sm text-[#2d6a4f] font-medium hover:underline">+ Add document</Link>
               </div>
             ) : (
               <div className="space-y-3">
@@ -244,8 +319,7 @@ function DashboardContent() {
                         doc.status === 'expiring_soon' ? 'bg-amber-100 text-amber-700' :
                         'bg-red-100 text-red-700'
                       }`}>
-                        {doc.status === 'active' ? '✅' : doc.status === 'expiring_soon' ? '⚠️' : '🔴'}
-                        {' '}{doc.status.replace('_', ' ')}
+                        {doc.status.replace('_', ' ')}
                       </span>
                     </div>
                     <p className="text-xs text-gray-400">{doc.doc_type?.replace('_', ' ')}</p>
@@ -254,7 +328,7 @@ function DashboardContent() {
                     )}
                   </div>
                 ))}
-                <Link href={`/documents?email=${encodeURIComponent(email!)}`} className="block text-center py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-[#2d6a4f] hover:text-[#2d6a4f] transition-colors">
+                <Link href="/documents" className="block text-center py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-[#2d6a4f] hover:text-[#2d6a4f] transition-colors">
                   + Add document
                 </Link>
               </div>
@@ -264,14 +338,14 @@ function DashboardContent() {
             <div className="mt-6 bg-[#f0faf5] rounded-xl p-5 border border-green-100">
               <h3 className="font-semibold text-gray-900 mb-3 text-sm">Quick Actions</h3>
               <div className="space-y-2">
-                <Link href={`/documents?email=${encodeURIComponent(email!)}`} className="flex items-center gap-2 text-sm text-[#2d6a4f] hover:underline">
+                <Link href="/documents" className="flex items-center gap-2 text-sm text-[#2d6a4f] hover:underline">
                   📄 Add certification or permit
                 </Link>
-                <Link href={`/regulations?email=${encodeURIComponent(email!)}`} className="flex items-center gap-2 text-sm text-[#2d6a4f] hover:underline">
-                  📋 Browse your regulations
+                <Link href="/regulations" className="flex items-center gap-2 text-sm text-[#2d6a4f] hover:underline">
+                  📋 Browse regulations
                 </Link>
                 <button
-                  onClick={() => fetch('/api/notify', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email: email}) })}
+                  onClick={() => fetch('/api/notify', { method: 'POST' })}
                   className="flex items-center gap-2 text-sm text-[#2d6a4f] hover:underline"
                 >
                   📧 Send compliance digest
@@ -282,22 +356,7 @@ function DashboardContent() {
         </div>
       </main>
 
-      <ChatWidget email={email!} farmProfile={profile} />
+      <ChatWidget farmProfile={profile} />
     </div>
-  )
-}
-
-export default function DashboardPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#faf7f0]">
-        <div className="text-center">
-          <div className="text-5xl animate-bounce mb-4">🌾</div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    }>
-      <DashboardContent />
-    </Suspense>
   )
 }
