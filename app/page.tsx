@@ -677,8 +677,8 @@ function LandingContent() {
               },
               {
                 icon: <IconHelp />,
-                title: 'AI Assistant',
-                desc: 'Ask any compliance question and get specific answers about your farm type, state, and operations.',
+                title: 'Fairchild',
+                desc: 'Ask Fairchild any compliance question by text or voice and get answers tailored to your farm type and operations.',
               },
             ].map(f => (
               <div
