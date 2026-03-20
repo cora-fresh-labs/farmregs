@@ -22,11 +22,11 @@ const IconBell = () => (
   </svg>
 )
 
-const IconHelp = () => (
+const IconChat = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-    <line x1="12" y1="17" x2="12.01" y2="17" />
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    <line x1="8" y1="9" x2="16" y2="9" />
+    <line x1="8" y1="13" x2="13" y2="13" />
   </svg>
 )
 
@@ -676,7 +676,7 @@ function LandingContent() {
                   : 'Instant notifications when FDA, USDA, or EPA regulations that affect your farm type change.',
               },
               {
-                icon: <IconHelp />,
+                icon: <IconChat />,
                 title: 'Fairchild',
                 desc: 'Ask Fairchild any compliance question by text or voice and get answers tailored to your farm type and operations.',
               },
